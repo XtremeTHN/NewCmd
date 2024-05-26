@@ -1,15 +1,20 @@
 import argparse
-import venv
 
 import sys
 import os
 
+from subprocess import Popen
 from modules.spinner import Spinner
 
 class Args:
     LANGUAGE: str
     TYPE: str
     directory: str
+
+def execute(*args):
+    with Popen(args=args, stdout=sys.stdout, stderr=sys.stderr) as proc:
+        proc.communicate()
+        return proc.poll() == 0
 
 def main():
     parser = argparse.ArgumentParser(prog="new", description="Creates a new project")
@@ -37,8 +42,7 @@ def main():
                         os.makedirs(path, exist_ok=True)
                         
                         spin.text = "Creating virtual environment..."
-
-                        venv.create(os.path.join(path, ".venv"), with_pip=True, symlinks=True)
+                        execute("python3", "-m", "venv", os.path.join(path, ".venv"))
                     
                         spin.text = "Creating project root..."
                         
