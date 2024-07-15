@@ -1,63 +1,43 @@
 import argparse
-
-import sys
 import os
 
-from subprocess import Popen
-from modules.spinner import Spinner
+from modules.python import create_python_script
+from modules.vala import create_vala_project
 
-class Args:
-    LANGUAGE: str
-    TYPE: str
-    directory: str
-
-def execute(*args):
-    with Popen(args=args, stdout=sys.stdout, stderr=sys.stderr) as proc:
-        proc.communicate()
-        return proc.poll() == 0
+from modules.utils import Args, error, info
 
 def main():
     parser = argparse.ArgumentParser(prog="new", description="Creates a new project")
 
     parser.add_argument("LANGUAGE", help="The language that the project will be based on")
-    parser.add_argument("TYPE", help="The project type that you want to work on. Example: (new python module, new python script)")
+    parser.add_argument("TYPE", nargs="?", help="The project type that you want to work on. Example: (new python module, new python script)")
     parser.add_argument("-d", dest="directory", default=os.getcwd(), help=f"The directory where the project will live. Default {os.getcwd()}")
+    parser.add_argument("-n", "--project-name", dest="project_name", help="The project name. Required for some languages, like Vala")
 
     args: Args = parser.parse_args()
 
     match args.LANGUAGE:
         case "python":
+            if args.TYPE == None:
+                error("You need to specify what kind of python project you want to create")
+
             match args.TYPE:
                 case "script":
-                    print("Creating a new python script...")
-                    
-                    with Spinner("Creating directory...") as spin:
-                        path = args.directory
-                        if os.path.exists(path):
-                            if path != ".":
-                                spin.stop()
-                                print("The project already exists")
-                                sys.exit(1)
-                            
-                        os.makedirs(path, exist_ok=True)
-                        
-                        spin.text = "Creating virtual environment..."
-                        execute("python3", "-m", "venv", os.path.join(path, ".venv"))
-                    
-                        spin.text = "Creating project root..."
-                        
-                        os.makedirs(os.path.join(path, "src", "modules"), exist_ok=True)
-                        open(os.path.join(path, "src", "main.py"), "x").close()
-
-                    print("Done!")
+                    create_python_script(args)
                 
                 case "module":
-                    print("Not implemented yet")
+                    info("Not implemented yet")
 
                 case _:
-                    print("Unknown project type")
+                    info("Unknown project type")
+        case "vala":
+            if args.project_name is None:
+                error("Project name is required")
+
+            create_vala_project(args)
+
         case _:
-            print("Unknown project language")
+            error("Unknown or not supported project language")
 
 if __name__ == "__main__":
     main()

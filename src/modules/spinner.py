@@ -1,37 +1,6 @@
 from threading import Thread, Event
+from modules.utils import Style
 
-#spinner =  [
-#    "◜",
-#    "◠",
-#    "◝",
-#    "◞",
-#    "◡",
-#    "◟"
-#]
-#
-#class ArcSpinner(Thread):
-#    def __init__(self, text):
-#        self.stop = Event()
-#        self.text = text
-#        
-#        super().__init__()
-#        self.start()
-#        
-#    def __enter__(self):
-#        return self
-#    
-#    def __exit__(self, *_):
-#        self.stop.set()
-#    
-#    def run(self):
-#        
-#        while not self.stop.is_set():
-#            for x in spinner:
-#                print(x, self.text, end="\r")
-#                if self.stop.wait(0.100):
-#                    print("⊙", self.text)
-#                    break
-#
 CURSOR_HIDE = "\033[?25l"
 CURSOR_SHOW = "\033[?25h"
 CYAN = "\033[0;36m"
@@ -77,6 +46,8 @@ class Spinner(Thread):
         self.prefix = prefix
         self._text = text
         self.should_stop = Event()
+        self.should_wait = Event()
+        self.frame = ""
         
     @property
     def text(self):
@@ -97,20 +68,29 @@ class Spinner(Thread):
         self.stop()
         print(CURSOR_SHOW, end="")
     
-    def _render(self, frame):
-        print(f"{self.prefix} {CYAN}{frame}{RESET} {self._text}".strip(), flush=False, end="\r")
+    def _render(self, spinner_frame):
+        self.frame = f"{self.prefix} {CYAN}{spinner_frame}{RESET} {self._text}".strip()
+        print(self.frame, flush=False, end="\r")
     
+    def print(self, msg, level="INFO"):
+        self.should_wait.set()
+        print(" " * len(self.frame), end="\r")
+        print(getattr(Style, level, "INFO"), msg)
+        self.should_wait.clear()
+
     def clear(self):
-        
         print(self.CLEAR_LINE, end="")
         
     def run(self):
         print(CURSOR_HIDE,end="")
         while self.should_stop.is_set() is False:
-            for frame in SPINNER_FRAMES:
+            while self.should_wait.is_set():
+                pass
+
+            for spinner_frame in SPINNER_FRAMES:
                 # print(self.should_stop.is_set())
                 
-                self._render(frame)
+                self._render(spinner_frame)
                 self.clear()
                 
                 if self.should_stop.wait(0.080) is True:
