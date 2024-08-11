@@ -55,7 +55,7 @@ executable('%PROJECT_NAME%', %PROJECT_NAME%_sources,
 """
 
 PO_MESON_TEMPLATE = """
-i18n.gettext('kagent', preset: 'glib')
+i18n.gettext('%PROJECT_NAME%', preset: 'glib')
 """
 
 def create_vala_project(args):
