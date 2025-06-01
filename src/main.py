@@ -12,13 +12,15 @@ def main():
     parser.add_argument("LANGUAGE", help="The language that the project will be based on")
     parser.add_argument("TYPE", nargs="?", help="The project type that you want to work on. Example: (new python module, new python script)")
     parser.add_argument("-d", dest="directory", default=os.getcwd(), help=f"The directory where the project will live. Default {os.getcwd()}")
-    parser.add_argument("-n", "--project-name", dest="project_name", help="The project name. Required for some languages, like Vala")
+    parser.add_argument("-p", "--project-name", dest="project_name", help="The project name. Required for some languages, like Vala")
+    parser.add_argument("-n", "--nix", action="store_true", help="Generate nix files")
+    parser.add_argument("-m", "--minimal", action="store_true", help="Generate the necesary files only")
 
     args: Args = parser.parse_args()
 
     match args.LANGUAGE:
         case "python":
-            if args.TYPE == None:
+            if args.TYPE is None:
                 error("You need to specify what kind of python project you want to create")
 
             match args.TYPE:
@@ -38,6 +40,7 @@ def main():
 
         case _:
             error("Unknown or not supported project language")
+
 
 if __name__ == "__main__":
     main()

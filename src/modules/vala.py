@@ -1,4 +1,4 @@
-from modules.utils import execute, info
+from modules.utils import execute, info, write_and_replace_name
 
 import pathlib
 import os
@@ -21,6 +21,13 @@ gnome.post_install(
     gtk_update_icon_cache: true,
   update_desktop_database: true,
 )
+"""
+
+ROOT_MESON_TEMPLATE_BARE = """
+project('%PROJECT_NAME%', ['c', 'vala'],
+  version : '0.1')
+
+subdir('src')
 """
 
 SOURCE_MESON_TEMPLATE = """
@@ -54,23 +61,88 @@ executable('%PROJECT_NAME%', %PROJECT_NAME%_sources,
 )
 """
 
+SOURCE_MESON_TEMPLATE_BARE = """
+dependencies = [
+    # dependencies
+]
+
+sources = [
+    # source files
+]
+
+executable('%PROJECT_NAME%', dependencies : dependencies, install : true)
+"""
+
 PO_MESON_TEMPLATE = """
 i18n.gettext('%PROJECT_NAME%', preset: 'glib')
 """
 
+DIRENV_CONTENT = "use flake"
+
+FLAKE_TEMPLATE = """
+{
+  inputs.nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+
+  outputs = { self, nixpkgs }: let
+    system = "x86_64-linux";
+    pkgs = nixpkgs.legacyPackages.${system};
+    nativeBuildInputs = with pkgs; [
+      meson
+      ninja
+      vala
+      gcc
+      pkg-config
+      gobject-introspection
+    ];
+    buildInputs = with pkgs; [];
+  in {
+    devShells.${system}.default = pkgs.mkShell {
+      inherit nativeBuildInputs buildInputs;
+      packages = [
+        pkgs.vala-language-server
+    };
+
+    packages.${system}.default = pkgs.stdenv.mkDerivation {
+      name = "%PROJECT_NAME%";
+      version = "0.1";
+      src = ./.;
+
+      inherit nativeBuildInputs buildInputs;
+    };
+  };
+}
+"""
+
+
+def create_nix_files(root, p_name):
+    write_and_replace_name(root / "flake.nix", FLAKE_TEMPLATE, p_name)
+    (root / ".envrc").write_text(DIRENV_CONTENT)
+    execute("direnv", "allow", str(root))
+
+
 def create_vala_project(args):
     root = pathlib.Path(args.directory)
+    p_name = args.project_name.lower()
 
     info("Creating project root...")
-    os.makedirs(str(root / "src" / "ui"),  exist_ok=True)
-    os.mkdir(str(root / "po"))
+    (root / "src").mkdir(parents=True, exist_ok=True)
+
+    if args.nix:
+        info("Generating nix files...")
+        create_nix_files(root, p_name)
 
     info("Creating main vala file...")
-    open(root / "src" / "App.vala", 'x').close()
+    open(root / "src" / "main.vala", 'x').close()
 
     info("Creating meson files...")
-    (root / "meson.build").write_text(ROOT_MESON_TEMPLATE.replace("%PROJECT_NAME%", args.project_name.lower()))
-    (root / "src" / "meson.build").write_text(SOURCE_MESON_TEMPLATE.replace("%PROJECT_NAME%", args.project_name.lower()))
-    (root / "po" / "meson.build").write_text(PO_MESON_TEMPLATE)
+    if args.minimal:
+        write_and_replace_name(root / "meson.build", ROOT_MESON_TEMPLATE_BARE, p_name)
+        write_and_replace_name(root / "src" / "meson.build", SOURCE_MESON_TEMPLATE_BARE, p_name)
+    else:
+        (root / "po").mkdir(exist_ok=True)
+        (root / "src" / "ui").mkdir(exist_ok=True)
+        write_and_replace_name(root / "meson.build", ROOT_MESON_TEMPLATE, p_name)
+        write_and_replace_name(root / "src" / "meson.build", SOURCE_MESON_TEMPLATE, p_name)
+        write_and_replace_name(root / "po" / "meson.build", PO_MESON_TEMPLATE, "")
 
     info("Done")
