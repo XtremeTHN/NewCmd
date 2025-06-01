@@ -132,17 +132,21 @@ def create_vala_project(args):
         create_nix_files(root, p_name)
 
     info("Creating main vala file...")
-    open(root / "src" / "main.vala", 'x').close()
+    open(root / "src" / "main.vala", "x").close()
 
     info("Creating meson files...")
     if args.minimal:
         write_and_replace_name(root / "meson.build", ROOT_MESON_TEMPLATE_BARE, p_name)
-        write_and_replace_name(root / "src" / "meson.build", SOURCE_MESON_TEMPLATE_BARE, p_name)
+        write_and_replace_name(
+            root / "src" / "meson.build", SOURCE_MESON_TEMPLATE_BARE, p_name
+        )
     else:
         (root / "po").mkdir(exist_ok=True)
         (root / "src" / "ui").mkdir(exist_ok=True)
         write_and_replace_name(root / "meson.build", ROOT_MESON_TEMPLATE, p_name)
-        write_and_replace_name(root / "src" / "meson.build", SOURCE_MESON_TEMPLATE, p_name)
+        write_and_replace_name(
+            root / "src" / "meson.build", SOURCE_MESON_TEMPLATE, p_name
+        )
         write_and_replace_name(root / "po" / "meson.build", PO_MESON_TEMPLATE, "")
 
     info("Done")

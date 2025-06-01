@@ -33,4 +33,3 @@ def error(msg, code=1):
 
 def write_and_replace_name(path, string, name):
     path.write_text(string.replace("%PROJECT_NAME%", name))
-
